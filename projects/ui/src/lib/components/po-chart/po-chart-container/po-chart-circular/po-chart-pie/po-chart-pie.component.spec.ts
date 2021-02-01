@@ -107,6 +107,14 @@ describe('PoChartPieComponent', () => {
       expect(result).toEqual(expectedResult);
     });
 
+    it('getTooltipLabel: should return only `data` if `label` is undefined', () => {
+      const data = 30;
+      const label = undefined;
+      const result = component['getTooltipLabel'](data, label);
+
+      expect(result).toBe(data.toString());
+    });
+
     it('getTooltipLabel: should return dataLabel:dataValue if tooltipLabel is undefied', () => {
       const data = 30;
       const label = 'teste';

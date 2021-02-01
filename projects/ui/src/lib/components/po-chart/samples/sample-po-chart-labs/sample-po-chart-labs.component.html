@@ -24,7 +24,7 @@
     name="type"
     [(ngModel)]="type"
     p-columns="3"
-    p-label="Type"
+    p-label="Series Type"
     [p-options]="typeOptions"
     (p-change)="restore()"
   >
@@ -38,7 +38,7 @@
 <form #chartSeries="ngForm">
   <po-divider class="po-md-12" p-label="Chart series"></po-divider>
 
-  <div *ngIf="!isMultipleValues">
+  <div *ngIf="isCircularType">
     <div class="po-row">
       <po-input class="po-md-6" name="label" [(ngModel)]="label" p-label="Label"> </po-input>
 
@@ -48,25 +48,32 @@
     </div>
   </div>
 
-  <div class="po-row" *ngIf="isMultipleValues">
-    <po-input
-      class="po-md-4"
-      name="multipleValuesLabel"
-      [(ngModel)]="multipleValuesLabel"
-      p-label="Label"
-      p-help="Series label"
-      p-required
-    >
+  <div class="po-row" *ngIf="!isCircularType">
+    <po-input class="po-md-4" name="label" [(ngModel)]="label" p-label="Label" p-help="Series label" p-required>
     </po-input>
 
     <po-input
-      class="po-md-4"
+      class="po-md-2"
       name="inputDataSeries"
       [(ngModel)]="inputDataSeries"
       p-label="Data"
       p-help="Example: [24, 58, 83, 66, 75, 19]"
       p-required
     >
+    </po-input>
+
+    <po-select
+      *ngIf="type === 'line' || type === 'column'"
+      class="po-md-2"
+      name="combinedTypes"
+      [(ngModel)]="combinedTypes"
+      p-help="Choose between 'line' or 'column'"
+      p-label="Serie Type"
+      [p-options]="combinedTypesOptions"
+    >
+    </po-select>
+
+    <po-input class="po-md-4" name="tooltip" [(ngModel)]="tooltip" p-label="Tooltip Text" p-help="Custom Tooltip">
     </po-input>
   </div>
 
@@ -76,7 +83,7 @@
 </form>
 
 <form>
-  <div class="po-row" *ngIf="isMultipleValues">
+  <div class="po-row" *ngIf="!isCircularType">
     <po-divider class="po-md-12"></po-divider>
 
     <po-input

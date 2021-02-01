@@ -66,14 +66,17 @@ describe('PoChartBaseComponent:', () => {
 
     it('p-type: should update property with valid values.', () => {
       const validValues = (<any>Object).values(PoChartType);
+      spyOn(component, 'rebuildComponentRef');
 
       expectPropertiesValues(component, 'type', validValues, validValues);
+
+      expect(component.rebuildComponentRef).toHaveBeenCalled();
     });
 
-    it('p-type: should update property with `PoChartType.Pie` if contains invalid values', () => {
+    it('p-type: should update property with undefined if contains invalid values', () => {
       const invalidValues = [undefined, null, '', true, false, 0, 1, 'aa', [], {}];
 
-      expectPropertiesValues(component, 'type', invalidValues, PoChartType.Pie);
+      expectPropertiesValues(component, 'type', invalidValues, undefined);
     });
 
     it('p-series: should update property with valid values', () => {
@@ -89,11 +92,39 @@ describe('PoChartBaseComponent:', () => {
     });
 
     it('p-series: should call `transformObjectToArrayObject` if series is an object', () => {
-      spyOn(component, <any>'transformObjectToArrayObject');
+      const spyTtransformObjectToArrayObject = spyOn(component, <any>'transformObjectToArrayObject');
+      const spySetTypeDefault = spyOn(component, <any>'setTypeDefault');
+      const spyValidateSerieAndAddType = spyOn(component, <any>'validateSerieAndAddType');
 
       component.series = { value: 1, description: 'value' };
 
-      expect(component['transformObjectToArrayObject']).toHaveBeenCalledWith(component.series);
+      expect(spyTtransformObjectToArrayObject).toHaveBeenCalledWith(component.series);
+      expect(spySetTypeDefault).not.toHaveBeenCalled();
+      expect(spyValidateSerieAndAddType).not.toHaveBeenCalled();
+    });
+
+    it('p-series: should call `setTypeDefault` and `validateSerieAndAddType` if series is an array', () => {
+      const spyTtransformObjectToArrayObject = spyOn(component, <any>'transformObjectToArrayObject');
+      const spySetTypeDefault = spyOn(component, <any>'setTypeDefault');
+      const spyValidateSerieAndAddType = spyOn(component, <any>'validateSerieAndAddType');
+
+      component.series = [{ data: 1, label: 'value' }];
+
+      expect(spyTtransformObjectToArrayObject).not.toHaveBeenCalled();
+      expect(spySetTypeDefault).toHaveBeenCalledWith(component.series[0]);
+      expect(spyValidateSerieAndAddType).toHaveBeenCalledWith(component.series);
+    });
+
+    it('p-series: shouldn`t call `setTypeDefault` and `validateSerieAndAddType` if series is an empty array', () => {
+      const spyTtransformObjectToArrayObject = spyOn(component, <any>'transformObjectToArrayObject');
+      const spySetTypeDefault = spyOn(component, <any>'setTypeDefault');
+      const spyValidateSerieAndAddType = spyOn(component, <any>'validateSerieAndAddType');
+
+      component.series = [];
+
+      expect(spyTtransformObjectToArrayObject).toHaveBeenCalledWith(component.series);
+      expect(spySetTypeDefault).not.toHaveBeenCalled();
+      expect(spyValidateSerieAndAddType).not.toHaveBeenCalled();
     });
 
     it('p-options: should update property with valid values', () => {
@@ -160,18 +191,148 @@ describe('PoChartBaseComponent:', () => {
       expect(expectedResult).toBe(400);
     });
 
-    it('transformObjectToArrayObject: should return an array containing the serie`s object', () => {
+    it('transformObjectToArrayObject: should set an array containing the serie`s object to `chartSeries`', () => {
       const serie = { value: 1, description: 'description' };
-      const expectedResult = component['transformObjectToArrayObject'](serie);
 
-      expect(expectedResult).toEqual([serie]);
+      component['transformObjectToArrayObject'](serie);
+
+      expect(component.chartSeries).toEqual([serie]);
     });
 
-    it('transformObjectToArrayObject: should return an empty array if the serie is an object without length', () => {
+    it('transformObjectToArrayObject: should set empty array to `chartSeries` if the serie is an object without length', () => {
       const serie = <any>{};
-      const expectedResult = component['transformObjectToArrayObject'](serie);
 
-      expect(expectedResult).toEqual([]);
+      component['transformObjectToArrayObject'](serie);
+
+      expect(component.chartSeries).toEqual([]);
+    });
+
+    it('setTypeDefault: should apply `PoChartType.Pie` to `chartType` if serie.data is a number', () => {
+      const serie = { label: 'serie', data: 1 };
+
+      component['setTypeDefault'](serie);
+
+      expect(component['defaultType']).toBe(PoChartType.Pie);
+    });
+
+    it('setTypeDefault: should apply `PoChartType.Pie` to `chartType` if serie.value is a number', () => {
+      const serie = { label: 'serie', value: 1 };
+
+      component['setTypeDefault'](serie);
+
+      expect(component['defaultType']).toBe(PoChartType.Pie);
+    });
+
+    it('setTypeDefault: should apply `PoChartType.Column` to `chartType` if serie.data is an array', () => {
+      const serie = { label: 'serie', data: [1, 2] };
+
+      component['setTypeDefault'](serie);
+
+      expect(component['defaultType']).toBe(PoChartType.Column);
+    });
+
+    it('setTypeDefault: should apply `PoChartType.Bar` to `chartType` if serie.type is defined', () => {
+      const serie = { label: 'serie', data: [1, 2], type: PoChartType.Bar };
+
+      component['setTypeDefault'](serie);
+
+      expect(component['defaultType']).toBe(PoChartType.Bar);
+    });
+
+    describe('validateSerieAndAddType:', () => {
+      it('should apply to `chartSeries` a list with two objects with `data` and `pie` as default type', () => {
+        component.series = [
+          { label: 'serie 1', data: 1 },
+          { label: 'serie 2', data: 2 }
+        ];
+
+        const expectedResult = [
+          { label: 'serie 1', data: 1, type: PoChartType.Pie },
+          { label: 'serie 2', data: 2, type: PoChartType.Pie }
+        ];
+
+        component['validateSerieAndAddType'](component.series);
+
+        expect(component.chartSeries).toEqual(expectedResult);
+      });
+
+      it('should apply to `chartSeries` a list with two objects with `value` and `pie` as default type', () => {
+        component.series = [
+          { label: 'serie 1', value: 1 },
+          { label: 'serie 2', value: 2 }
+        ];
+
+        const expectedResult = [
+          { label: 'serie 1', value: 1, type: PoChartType.Pie },
+          { label: 'serie 2', value: 2, type: PoChartType.Pie }
+        ];
+
+        component['validateSerieAndAddType'](component.series);
+
+        expect(component.chartSeries).toEqual(expectedResult);
+      });
+
+      it('should apply to `chartSeries` a list with two objects with `data` and `column` as default type', () => {
+        component.series = [
+          { label: 'serie 1', data: [1, 2] },
+          { label: 'serie 2', data: [3, 4] }
+        ];
+
+        const expectedResult = [
+          { label: 'serie 1', data: [1, 2], type: PoChartType.Column },
+          { label: 'serie 2', data: [3, 4], type: PoChartType.Column }
+        ];
+
+        component['validateSerieAndAddType'](component.series);
+
+        expect(component.chartSeries).toEqual(expectedResult);
+      });
+
+      it('should apply to `chartSeries` a filtered list excluding not array items', () => {
+        component.series = [
+          { label: 'serie 1', data: [1, 2] },
+          { label: 'serie 2', data: 3 }
+        ];
+
+        const expectedResult = [{ label: 'serie 1', data: [1, 2], type: PoChartType.Column }];
+
+        component['validateSerieAndAddType'](component.series);
+
+        expect(component.chartSeries).toEqual(expectedResult);
+      });
+
+      it('should apply to `chartSeries` a filtered list excluding array items', () => {
+        component.series = [
+          { label: 'serie 1', data: [1, 2], type: PoChartType.Donut },
+          { label: 'serie 2', data: 3 },
+          { label: 'serie 3', data: 4 }
+        ];
+
+        const expectedResult = [
+          { label: 'serie 2', data: 3, type: PoChartType.Donut },
+          { label: 'serie 3', data: 4, type: PoChartType.Donut }
+        ];
+
+        component['validateSerieAndAddType'](component.series);
+
+        expect(component.chartSeries).toEqual(expectedResult);
+      });
+
+      it('should apply the first serie type the others if they do not have declared it', () => {
+        component.series = [
+          { label: 'serie 1', data: [1, 2], type: PoChartType.Line },
+          { label: 'serie 2', data: [3, 4] }
+        ];
+
+        const expectedResult = [
+          { label: 'serie 1', data: [1, 2], type: PoChartType.Line },
+          { label: 'serie 2', data: [3, 4], type: PoChartType.Line }
+        ];
+
+        component['validateSerieAndAddType'](component.series);
+
+        expect(component.chartSeries).toEqual(expectedResult);
+      });
     });
   });
 });

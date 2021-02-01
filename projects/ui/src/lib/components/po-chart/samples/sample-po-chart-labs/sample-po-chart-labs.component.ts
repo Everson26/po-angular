@@ -1,32 +1,23 @@
 import { Component, OnInit } from '@angular/core';
 
-import {
-  PoLineChartSeries,
-  PoChartType,
-  PoDonutChartSeries,
-  PoPieChartSeries,
-  PoSelectOption,
-  PoChartOptions
-} from '@po-ui/ng-components';
+import { PoChartSerie, PoChartType, PoSelectOption, PoChartOptions } from '@po-ui/ng-components';
 
 @Component({
   selector: 'sample-po-chart-labs',
   templateUrl: './sample-po-chart-labs.component.html'
 })
 export class SamplePoChartLabsComponent implements OnInit {
+  combinedTypes: PoChartType;
   label: string;
   totalValues: Array<number> = [];
   event: string;
   height: number;
-  multipleSeries: Array<PoPieChartSeries | PoDonutChartSeries>;
-  multipleValues: Array<PoLineChartSeries>;
-  series: Array<PoPieChartSeries | PoDonutChartSeries | PoLineChartSeries>;
+  series: Array<PoChartSerie>;
   title: string;
   tooltip: string;
   data: number;
   type: PoChartType;
   lineValues: number;
-  multipleValuesLabel: string = '';
   categories: string;
   allCategories: Array<string> = [];
   inputDataSeries: string;
@@ -38,6 +29,11 @@ export class SamplePoChartLabsComponent implements OnInit {
     }
   };
 
+  readonly combinedTypesOptions: Array<PoSelectOption> = [
+    { label: 'Line', value: PoChartType.Line },
+    { label: 'Column', value: PoChartType.Column }
+  ];
+
   readonly typeOptions: Array<PoSelectOption> = [
     { label: 'Donut', value: PoChartType.Donut },
     { label: 'Pie', value: PoChartType.Pie },
@@ -48,11 +44,10 @@ export class SamplePoChartLabsComponent implements OnInit {
 
   ngOnInit() {
     this.restore();
-    this.type = PoChartType.Line;
   }
 
-  get isMultipleValues(): boolean {
-    return this.type === PoChartType.Line || this.type === PoChartType.Column || this.type === PoChartType.Bar;
+  get isCircularType(): boolean {
+    return this.type === PoChartType.Pie || this.type === PoChartType.Donut;
   }
 
   addOptions() {
@@ -64,22 +59,17 @@ export class SamplePoChartLabsComponent implements OnInit {
   }
 
   addData() {
-    if (this.isMultipleValues) {
-      const dataSeries = this.convertToArray(this.inputDataSeries);
+    const data = this.isCircularType ? this.data : this.convertToArray(this.inputDataSeries);
 
-      this.multipleValues = [...this.multipleValues, { label: this.multipleValuesLabel, data: dataSeries }];
-    } else {
-      this.multipleSeries = [...this.multipleSeries, { label: this.label, data: this.data, tooltip: this.tooltip }];
-    }
+    this.series = [
+      ...this.series,
+      { label: this.label, data, tooltip: this.tooltip, type: this.combinedTypes || this.type }
+    ];
 
-    this.applySeriesData();
+    this.combinedTypes = undefined;
   }
 
-  applySeriesData() {
-    this.series = this.isMultipleValues ? this.multipleValues : this.multipleSeries;
-  }
-
-  changeEvent(eventName: string, serieEvent: PoPieChartSeries): void {
+  changeEvent(eventName: string, serieEvent: PoChartSerie): void {
     this.event = `${eventName}: ${JSON.stringify(serieEvent)}`;
   }
 
@@ -88,16 +78,13 @@ export class SamplePoChartLabsComponent implements OnInit {
     this.categories = undefined;
     this.event = undefined;
     this.height = undefined;
-    this.multipleSeries = [];
     this.series = [];
     this.title = undefined;
     this.tooltip = undefined;
     this.data = undefined;
     this.allCategories = [];
     this.inputDataSeries = undefined;
-    this.multipleValuesLabel = undefined;
     this.lineValues = undefined;
-    this.multipleValues = [];
     this.options = {
       axis: {
         minRange: undefined,
